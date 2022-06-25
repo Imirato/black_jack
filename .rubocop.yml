@@ -1,0 +1,12 @@
+AllCops:
+  NewCops: enable
+  Exclude:
+    - "./game.rb"
+
+Style/Documentation:
+  Exclude:
+    - "./**/*"
+
+Style/MutableConstant:
+  Exclude:
+    - "./card_deck.rb"
