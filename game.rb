@@ -6,6 +6,12 @@ require_relative 'real_player'
 require_relative 'bot_player'
 
 class Game
+
+  MAX_ACE = 11
+  MIN_ACE = 1
+  ACE_VALUE_CONDITION = 10
+  MAX_POINTS = 21
+
   attr_reader :bet, :bank
 
   def start_game
@@ -43,24 +49,11 @@ class Game
       3 => method(:show_result), 0 => method(:exit) }
   end
 
-  def create_real_player
-    puts 'Введите Ваше имя'
-    name = gets.chomp
-
-    @real_player = RealPlayer.new(name)
-  end
-
-  def create_bot_player
-    @bot_player = BotPlayer.new
-  end
-
-  def create_card_deck
-    @card_deck = CardDeck.new
-  end
-
+  # Game
   def start_round
     puts "Ваша ставка - #{@bet}. Остаток на счету - #{@real_player.place_bet(@bet)}"
-    puts "Ваши карты - #{@real_player.add_cards(@card_deck.deal_cards(2))}"
+    @real_player.add_cards(@card_deck.deal_cards(2))
+    puts "Ваши карты - #{@real_player.cards.map { |card| card.to_s }.join(' ')}"
     puts "Сумма Ваших очков - #{calculate_score(@real_player.cards)}"
     puts "Ставка Дилера - #{@bet}. Остаток на счету - #{@bot_player.place_bet(@bet)}"
     @bot_player.add_cards(@card_deck.deal_cards(2))
@@ -69,18 +62,6 @@ class Game
     @bank = 20
     puts "Банк - #{@bank}"
     menu
-  end
-
-  def calculate_score(cards)
-    score = 0
-
-    cards.each { |card| score += card_value(card) unless card.include?('Т') }
-
-    cards.count { |card| card.include?('Т') }.times do
-      score += score <= 10 ? 11 : 1
-    end
-
-    score
   end
 
   def bot_player_turn
@@ -95,21 +76,28 @@ class Game
     show_result
   end
 
+  def deal_card
+    @real_player.add_card(@card_deck.deal_card)
+    puts "Ваши карты - #{@real_player.cards.map { |card| card.to_s }.join(' ')}"
+    puts "Сумма Ваших очков - #{calculate_score(@real_player.cards)}"
+    bot_player_turn
+  end
+
   def show_result
     real_player_score = calculate_score(@real_player.cards)
     bot_player_score = calculate_score(@bot_player.cards)
 
     puts 'Вскрываем карты'
-    puts "Карты игрока - #{@real_player.cards}"
-    puts "Карты Дилера - #{@bot_player.cards}"
+    puts "Карты игрока - #{@real_player.cards.map { |card| card.to_s }.join(' ')}"
+    puts "Карты Дилера - #{@bot_player.cards.map { |card| card.to_s }.join(' ')}"
     puts "Счет игрока - #{real_player_score}"
     puts "Счет Дилера - #{bot_player_score}"
 
-    if (real_player_score > bot_player_score && real_player_score <= 21) ||
-      (real_player_score < bot_player_score && bot_player_score > 21)
+    if (real_player_score > bot_player_score && real_player_score <= MAX_POINTS) ||
+      (real_player_score < bot_player_score && bot_player_score > MAX_POINTS)
       puts "Поздравляем, #{@real_player.name}! Вы выиграли"
       @real_player.get_money(@bank)
-    elsif bot_player_score <= 21
+    elsif bot_player_score <= MAX_POINTS
       puts 'Выиграл Дилер'
       @bot_player.get_money(@bank)
     else
@@ -129,32 +117,39 @@ class Game
     gets.chomp.capitalize == 'Да' ? start_round : exit
   end
 
-  def deal_card
-    puts "Ваши карты - #{@real_player.add_card(@card_deck.deal_card)}"
-    puts "Сумма Ваших очков - #{calculate_score(@real_player.cards)}"
-    bot_player_turn
+  def calculate_score(cards)
+    score = 0
+
+    cards.each { |card| score += @card_deck.card_value(card) unless card.value == 'Т' }
+
+    cards.count { |card| card.value == 'Т' }.times do
+      score += score <= ACE_VALUE_CONDITION ? MAX_ACE : MIN_ACE
+    end
+
+    score
   end
 
+  # Helpers
   def clear_data
-    @card_deck.refresh
+    @card_deck = CardDeck.new
     @real_player.delete_cards
     @bot_player.delete_cards
     @bank = 0
   end
 
-  def card_value(card)
-    { "2+": 2, "2<3": 2, "2^": 2, "2<>": 2,
-      "3+": 3, "3<3": 3, "3^": 3, "3<>": 3,
-      "4+": 4, "4<3": 4, "4^": 4, "4<>": 4,
-      "5+": 5, "5<3": 5, "5^": 5, "5<>": 5,
-      "6+": 6, "6<3": 6, "6^": 6, "6<>": 6,
-      "7+": 7, "7<3": 7, "7^": 7, "7<>": 7,
-      "8+": 8, "8<3": 8, "8^": 8, "8<>": 8,
-      "9+": 9, "9<3": 9, "9^": 9, "9<>": 9,
-      "10+": 10, "10<3": 10, "10^": 10, "10<>": 10,
-      "В+": 10, "В<3": 10, "В^": 10, "В<>": 10,
-      "Д+": 10, "Д<3": 10, "Д^": 10, "Д<>": 10,
-      "К+": 10, "К<3": 10, "К^": 10, "К<>": 10,
-      "Т+": 11, "Т<3": 11, "Т^": 11, "Т<>": 11 }[card.to_sym]
+  # Creators
+  def create_real_player
+    puts 'Введите Ваше имя'
+    name = gets.chomp
+
+    @real_player = RealPlayer.new(name)
+  end
+
+  def create_bot_player
+    @bot_player = BotPlayer.new
+  end
+
+  def create_card_deck
+    @card_deck = CardDeck.new
   end
 end

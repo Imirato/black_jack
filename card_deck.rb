@@ -1,15 +1,21 @@
 # frozen_string_literal: true
 
+require_relative 'card'
+
 class CardDeck
-  CARDS = %w[
-    2+ 3+ 4+ 5+ 6+ 7+ 8+ 9+ 10+ В+ Д+ К+ Т+
-    2^ 3^ 4^ 5^ 6^ 7^ 8^ 9^ 10^ В^ Д^ К^ Т^
-    2<3 3<3 4<3 5<3 6<3 7<3 8<3 9<3 10<3 В<3 Д<3 К<3 Т<3
-    2<> 3<> 4<> 5<> 6<> 7<> 8<> 9<> 10<> В<> Д<> К<> Т<>
-  ]
+  CARD_VALUES = %w[2 3 4 5 6 7 8 9 10 В Д К Т].freeze
+  CARD_SUITS = %w[+ <> ^ <3].freeze
+  CARD_SCORES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+                  '9': 9, '10': 10, 'В': 10, 'Д': 10, 'К': 10, 'Т': 11 }.freeze
 
   def initialize
-    @cards_array = CARDS.clone
+    @cards = []
+
+    CARD_SUITS.each do |suit|
+      CARD_VALUES.each { |value| @cards << Card.new(value, suit) }
+    end
+
+    @cards.shuffle!
   end
 
   def deal_cards(quantity)
@@ -17,10 +23,10 @@ class CardDeck
   end
 
   def deal_card
-    @cards_array.delete_at(rand(@cards_array.length))
+    @cards.pop
   end
 
-  def refresh
-    @cards_array = CARDS.clone
+  def card_value(card)
+    CARD_SCORES[card.value.to_sym]
   end
 end
