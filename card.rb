@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Card
   attr_reader :value, :suit
 
@@ -5,7 +7,6 @@ class Card
     @value = value
     @suit = suit
   end
-
 
   def to_s
     "#{@value}#{@suit}"
